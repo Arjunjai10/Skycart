@@ -124,52 +124,82 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showDefaultImagePicker() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose a profile picture'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: GridView.builder(
-            shrinkWrap: true,
-            itemCount: defaultImages.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        // symmetric padding keeps everything nicely spaced
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // little grab handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () async {
-                  Navigator.pop(context);
-                  setState(() => isLoading = true);
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
-                    await _userService.updateProfileImageUrl(
-                      user.uid,
-                      defaultImages[index],
-                    );
-                    setState(() {
-                      _profileImageUrl = defaultImages[index];
-                      _profileImage = null;
-                      isLoading = false;
-                    });
-                  }
-                },
-                child: Image.asset(defaultImages[index]),
-              );
-            },
-          ),
+            const SizedBox(height: 16),
+            const Text(
+              'Choose a profile picture',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 24),
+
+            // ---- Avatar grid ---------------------------------------------------
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: defaultImages.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,        // 3 per row looks balanced on phones
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1,      // makes every tile perfectly square
+              ),
+              itemBuilder: (context, index) {
+                final img = defaultImages[index];
+                return GestureDetector(
+                  onTap: () async {
+                    Navigator.pop(context);       // close sheet
+                    setState(() => isLoading = true);
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      await _userService.updateProfileImageUrl(user.uid, img);
+                      setState(() {
+                        _profileImageUrl = img;
+                        _profileImage = null;
+                        isLoading = false;
+                      });
+                    }
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(img, fit: BoxFit.cover),
+                  ),
+                );
+              },
+            ),
+            // -------------------------------------------------------------------
+
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(fontSize: 16)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
   }
+
 
   void _showEditProfileSheet() {
     _nameController.text = userName;

@@ -55,7 +55,7 @@ class WeatherService {
       case 'Clear':
         return 'assets/clear.png';
       case 'Clouds':
-        return 'assets/lightcloud.png';
+        return 'assets/showers.png';
       case 'Rain':
         return 'assets/lightrain.png';
       case 'Heavy Rain':
@@ -65,7 +65,7 @@ class WeatherService {
       case 'Snow':
         return 'assets/snow.png';
       default:
-        return 'assets/lightcloud.png';
+        return 'assets/showers.png';
     }
   }
 

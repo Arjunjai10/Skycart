@@ -54,7 +54,7 @@ class _HomeState extends State<Home> {
   // };
   final Map<String, String> weatherIcons = {
     'Clear': 'assets/clear.png',
-    'Clouds': 'assets/lightcloud.png',
+    'Clouds': 'assets/showers.png',
     'Rain': 'assets/lightrain.png',
     'Heavy Rain': 'assets/heavyrain.png',
     'Snow': 'assets/snow.png',
@@ -134,34 +134,27 @@ class _HomeState extends State<Home> {
   }
 
   String _getLocalWeatherIcon(String weatherCondition) {
-    // First try exact match
-    if (weatherIcons.containsKey(weatherCondition)) {
-      return weatherIcons[weatherCondition]!;
+    String normalizedCondition = weatherCondition[0].toUpperCase() + weatherCondition.substring(1).toLowerCase();
+    print("🔍 Normalized condition: $normalizedCondition");
+
+    if (weatherIcons.containsKey(normalizedCondition)) {
+      print("Matched: ${weatherIcons[normalizedCondition]}");
+      return weatherIcons[normalizedCondition]!;
     }
 
-    // Handle variations and partial matches
-    if (weatherCondition.toLowerCase().contains('thunder')) {
-      return 'assets/thunderstorm.png';
-    }
-    if (weatherCondition.toLowerCase().contains('heavy') ||
-        weatherCondition.toLowerCase().contains('shower')) {
-      return 'assets/heavyrain.png';
-    }
-    if (weatherCondition.toLowerCase().contains('rain') ||
-        weatherCondition.toLowerCase().contains('drizzle')) {
-      return 'assets/lightrain.png';
-    }
-    if (weatherCondition.toLowerCase().contains('cloud')) {
-      return 'assets/lightcloud.png';
-    }
-    if (weatherCondition.toLowerCase().contains('snow') ||
-        weatherCondition.toLowerCase().contains('sleet')) {
-      return 'assets/snow.png';
-    }
+    final lower = weatherCondition.toLowerCase();
+    print("Fallback triggered for: $lower");
 
-    // Default fallback
-    return 'assets/lightcloud.png';
+    if (lower.contains('thunder')) return 'assets/thunderstorm.png';
+    if (lower.contains('heavy') || lower.contains('shower')) return 'assets/heavyrain.png';
+    if (lower.contains('rain') || lower.contains('drizzle')) return 'assets/lightrain.png';
+    if (lower.contains('cloud')) return 'assets/showers.png';
+    if (lower.contains('snow') || lower.contains('sleet')) return 'assets/snow.png';
+
+    return 'assets/showers.png';
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +199,7 @@ class _HomeState extends State<Home> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset('assets/menu-bar.png', width: 40, height: 40),
+                child: Image.asset('assets/sun (1).png', width: 60, height: 60),
               ),
               Row(
                 children: [
@@ -249,9 +242,9 @@ class _HomeState extends State<Home> {
                 boxShadow: [
                   BoxShadow(
                     color: myConstants.primaryColor.withOpacity(.5),
-                    offset: const Offset(0, 25),
+                    offset: const Offset(5, 30),
                     blurRadius: 10,
-                    spreadRadius: -12,
+                    spreadRadius: -10,
                   )
                 ],
               ),
