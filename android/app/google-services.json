@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41691032548",
+    "project_id": "skycast-weather-26cc4",
+    "storage_bucket": "skycast-weather-26cc4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41691032548:android:3f8151f8178fab69a535f1",
+        "android_client_info": {
+          "package_name": "com.skycw.sky_cast"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBu74510iFqRCQmIol0dPPombeu4HolOY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
