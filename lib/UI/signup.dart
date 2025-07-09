@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
 
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
@@ -111,6 +112,16 @@ class _SignupState extends State<Signup> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              SizedBox(
+                height: 200, // Adjust height as needed
+                child: Lottie.asset(
+                  'assets/animation.json', // Path to your Lottie file
+                  fit: BoxFit.contain,
+                  repeat: true,
+                  animate: true,
+                ),
+              ),
+              const SizedBox(height: 16),
               // Name field
               TextFormField(
                 controller: _nameController,
@@ -190,7 +201,7 @@ class _SignupState extends State<Signup> {
                   onPressed: _isLoading ? null : _handleSignup,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.black,
+                    backgroundColor: Colors.white,
                   ),
                   child: _isLoading
                       ? const SizedBox(

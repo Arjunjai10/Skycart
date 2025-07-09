@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
 import 'get_started.dart';
 import 'main_navigation.dart';
 
@@ -43,9 +44,12 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/clear.png',
-              height: 120,
+            Lottie.asset(
+              'assets/weather-night-rain.json',
+              height: 200,
+              width: 200,
+              fit: BoxFit.contain,
+              repeat: true,
             ),
             const SizedBox(height: 20),
             const Text(

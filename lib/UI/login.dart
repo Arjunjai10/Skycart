@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
 import '../services/auth_service.dart';
 import 'signup.dart';
 import 'main_navigation.dart';
@@ -88,6 +89,16 @@ class _LoginState extends State<Login> {
           key: _formKey,
           child: Column(
             children: [
+              SizedBox(
+                height: 200, // Adjust height as needed
+                child: Lottie.asset(
+                  'assets/animation.json', // Path to your Lottie file
+                  fit: BoxFit.contain,
+                  repeat: true,
+                  animate: true,
+                ),
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,10 +24,24 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isLoading = true;
   String _errorMessage = '';
 
+  final List<String> defaultImages = [
+    'assets/default_profile_images/cat.jpeg',
+    'assets/default_profile_images/dog.jpeg',
+    'assets/default_profile_images/panda.jpeg',
+    'assets/default_profile_images/rabit.jpeg',
+  ];
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+
+    // Pre-cache images
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (var image in defaultImages) {
+        precacheImage(AssetImage(image), context);
+      }
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -44,13 +57,9 @@ class _ProfilePageState extends State<ProfilePage> {
             _profileImageUrl = userData['profileImage'];
           });
         } else {
-          // Create user document if it doesn't exist
           await _userService.saveUserData(
-              user.uid,
-              user.displayName ?? 'User',
-              user.email ?? ''
-          );
-          await _loadUserData(); // Reload data
+              user.uid, user.displayName ?? 'User', user.email ?? '');
+          await _loadUserData();
         }
       }
     } catch (e) {
@@ -63,6 +72,33 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.image),
+            title: const Text('Choose from gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImageFromGallery();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.face),
+            title: const Text('Choose default avatar'),
+            onTap: () {
+              Navigator.pop(context);
+              _showDefaultImagePicker();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromGallery() async {
     final pickedImage = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
@@ -70,7 +106,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (pickedImage != null) {
       setState(() => isLoading = true);
-
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final imageUrl = await _userService.uploadProfileImage(
@@ -86,6 +121,54 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
+  }
+
+  void _showDefaultImagePicker() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose a profile picture'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: GridView.builder(
+            shrinkWrap: true,
+            itemCount: defaultImages.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () async {
+                  Navigator.pop(context);
+                  setState(() => isLoading = true);
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    await _userService.updateProfileImageUrl(
+                      user.uid,
+                      defaultImages[index],
+                    );
+                    setState(() {
+                      _profileImageUrl = defaultImages[index];
+                      _profileImage = null;
+                      isLoading = false;
+                    });
+                  }
+                },
+                child: Image.asset(defaultImages[index]),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showEditProfileSheet() {
@@ -108,10 +191,8 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "Edit Profile",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text("Edit Profile",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             TextField(
               controller: _nameController,
@@ -172,10 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Profile",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            )),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.black,
       ),
       body: Container(
@@ -190,7 +268,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundImage: _profileImage != null
                     ? FileImage(_profileImage!)
                     : (_profileImageUrl != null
-                    ? NetworkImage(_profileImageUrl!)
+                    ? (_profileImageUrl!.startsWith('assets/')
+                    ? AssetImage(_profileImageUrl!) as ImageProvider
+                    : NetworkImage(_profileImageUrl!))
                     : null),
                 child: _profileImage == null && _profileImageUrl == null
                     ? const Icon(Icons.person, size: 60)
@@ -198,15 +278,12 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(
-              userName,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
+            Text(userName,
+                style:
+                const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(
-              userEmail,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
+            Text(userEmail,
+                style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 30),
             ElevatedButton.icon(
               onPressed: _showEditProfileSheet,

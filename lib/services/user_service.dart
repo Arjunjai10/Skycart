@@ -80,8 +80,10 @@ class UserService {
   Future<void> updateProfileImageUrl(String uid, String imageUrl) async {
     await _firestore.collection('users').doc(uid).update({
       'profileImage': imageUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
 
   // Get user preferences
   Future<Map<String, dynamic>> getUserPreferences(String uid) async {
