@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
+
 import '../services/auth_service.dart';
 import 'signup.dart';
 import 'main_navigation.dart';
@@ -30,8 +31,8 @@ class _LoginState extends State<Login> {
 
     try {
       final user = await _auth.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
       if (user != null) {
@@ -45,9 +46,9 @@ class _LoginState extends State<Login> {
         _errorMessage = e.message ?? 'Login failed. Please try again.';
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
-        _errorMessage = 'Configuration error. Please restart the app.';
+        _errorMessage = 'Something went wrong';
         _isLoading = false;
       });
     }
@@ -67,7 +68,7 @@ class _LoginState extends State<Login> {
           MaterialPageRoute(builder: (_) => const MainNavigation()),
         );
       }
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _errorMessage = 'Google sign in failed';
         _isLoading = false;
@@ -90,27 +91,20 @@ class _LoginState extends State<Login> {
           child: Column(
             children: [
               SizedBox(
-                height: 200, // Adjust height as needed
-                child: Lottie.asset(
-                  'assets/animation.json', // Path to your Lottie file
-                  fit: BoxFit.contain,
-                  repeat: true,
-                  animate: true,
-                ),
+                height: 200,
+                child: Lottie.asset('assets/animation.json'),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) =>
-                value!.isEmpty ? 'Please enter email' : null,
+                validator: (value) => value!.isEmpty ? 'Please enter email' : null,
               ),
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Password'),
-                validator: (value) =>
-                value!.isEmpty ? 'Please enter password' : null,
+                validator: (value) => value!.isEmpty ? 'Please enter password' : null,
               ),
               if (_errorMessage != null)
                 Padding(
@@ -121,23 +115,17 @@ class _LoginState extends State<Login> {
                   ),
                 ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Login'),
-                ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Login'),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _isLoading ? null : _handleGoogleSignIn,
-                  icon: const Icon(Icons.g_mobiledata), // or use your image
-                  label: const Text('Sign in with Google'),
-                ),
+              OutlinedButton.icon(
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                icon: const Icon(Icons.g_mobiledata),
+                label: const Text('Sign in with Google'),
               ),
               TextButton(
                 onPressed: () {

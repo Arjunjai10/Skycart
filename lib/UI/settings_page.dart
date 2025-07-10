@@ -10,10 +10,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool isDarkMode = false;
   bool isCelsius = true;
   final UserService _userService = UserService();
   bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -22,67 +22,112 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadSettings() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final prefs = await _userService.getUserPreferences(user.uid);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final prefs = await _userService.getUserPreferences(user.uid);
+        setState(() {
+          isCelsius = prefs['isCelsius'] ?? true;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'User not logged in';
+        });
+      }
+    } catch (e) {
       setState(() {
-        isDarkMode = prefs['isDarkMode'] ?? false;
-        isCelsius = prefs['isCelsius'] ?? true;
         isLoading = false;
+        errorMessage = 'Failed to load settings: ${e.toString()}';
       });
     }
   }
 
   Future<void> _saveSettings() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await _userService.updatePreferences(user.uid, isDarkMode, isCelsius);
+    try {
+      setState(() => isLoading = true);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _userService.updatePreferences(uid: user.uid, isCelsius: isCelsius);
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to save settings: ${e.toString()}';
+      });
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
   void resetToDefault() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await _userService.updatePreferences(user.uid, false, true);
-      setState(() {
-        isDarkMode = false;
-        isCelsius = true;
-      });
+    try {
+      setState(() => isLoading = true);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _userService.updatePreferences(uid: user.uid, isCelsius: true);
+        setState(() {
+          isCelsius = true;
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Settings reset to default")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reset settings: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => isLoading = false);
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Settings reset to default")),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Settings"),
+          backgroundColor: Colors.black,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(errorMessage!),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadSettings,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Settings",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            )),
+        title: const Text(
+          "Settings",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.black,
       ),
-      body: ListView(
+      body: Column(
         children: [
           SwitchListTile(
-            title: const Text("Dark Mode"),
-            value: isDarkMode,
-            onChanged: (val) {
-              setState(() => isDarkMode = val);
-              _saveSettings();
-            },
-          ),
-          SwitchListTile(
-            title: const Text("Temperature in Celsius"),
-            subtitle: const Text("Turn off for Fahrenheit"),
+            title: const Text("Temperature Unit"),
+            subtitle: const Text("Celsius / Fahrenheit"),
             value: isCelsius,
             onChanged: (val) {
               setState(() => isCelsius = val);
@@ -94,6 +139,14 @@ class _SettingsPageState extends State<SettingsPage> {
             leading: const Icon(Icons.restore),
             title: const Text("Reset to Default"),
             onTap: resetToDefault,
+          ),
+          const Spacer(),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              "SkyCast Weather App v1.0",
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
         ],
       ),

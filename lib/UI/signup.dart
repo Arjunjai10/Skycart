@@ -41,48 +41,35 @@ class _SignupState extends State<Signup> {
 
     try {
       final user = await _auth.signUp(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
       if (user != null) {
-        // Save basic user data
+        // Save user data
         await _userService.saveUserData(
           user.uid,
           _nameController.text.trim(),
           _emailController.text.trim(),
         );
 
-        // Initialize default preferences
-        await _userService.updatePreferences(user.uid, false, true);
+        // Save preference (only isCelsius, no dark mode)
+        await _userService.updatePreferences(
+          uid: user.uid,
+          isCelsius: true,
+        );
 
+        // Navigate
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CitySelectionScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'email-already-in-use':
-          errorMessage = 'Email already in use';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled';
-          break;
-        case 'weak-password':
-          errorMessage = 'Password must be at least 6 characters';
-          break;
-        default:
-          errorMessage = 'Sign up failed: ${e.message}';
-      }
-      setState(() => _errorMessage = errorMessage);
+      setState(() => _errorMessage = e.message ?? 'Signup failed');
     } catch (e) {
-      setState(() => _errorMessage = 'An unexpected error occurred: ${e.toString()}');
+      setState(() => _errorMessage = 'Unexpected error: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -109,128 +96,112 @@ class _SignupState extends State<Signup> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                height: 200, // Adjust height as needed
-                child: Lottie.asset(
-                  'assets/animation.json', // Path to your Lottie file
-                  fit: BoxFit.contain,
-                  repeat: true,
-                  animate: true,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Lottie.asset(
+                  'assets/animation.json',
+                  height: 200,
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Name field
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter your name';
-                  if (value.length < 2) return 'Name must be at least 2 characters';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Email field
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
+                // Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Enter your name';
+                    if (value.length < 2) return 'Name too short';
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter your email';
-                  if (!value.contains('@') || !value.contains('.')) return 'Please enter a valid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Password field
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock),
+                // Email
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Enter email';
+                    if (!value.contains('@')) return 'Enter valid email';
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter your password';
-                  if (value.length < 6) return 'Password must be at least 6 characters';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Confirm Password
-              TextFormField(
-                controller: _confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm Password',
-                  prefixIcon: Icon(Icons.lock_outline),
+                // Password
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Enter password';
+                    if (value.length < 6) return 'Minimum 6 characters';
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please confirm your password';
-                  if (value != _passwordController.text) return 'Passwords do not match';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-              // Error message
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
+                // Confirm Password
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Re-enter password';
+                    if (value != _passwordController.text) return 'Passwords do not match';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // Error
+                if (_errorMessage != null)
+                  Text(
                     _errorMessage!,
                     style: const TextStyle(color: Colors.red),
                   ),
-                ),
 
-              // Submit button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSignup,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.white,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+                const SizedBox(height: 16),
+
+                // Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleSignup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                  )
-                      : const Text('Sign Up', style: TextStyle(fontSize: 16)),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Sign Up', style: TextStyle(fontSize: 16)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
 
-              // Navigation to login
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const Login()),
-                  );
-                },
-                child: const Text(
-                  'Already have an account? Login',
-                  style: TextStyle(color: Colors.black),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const Login()),
+                    );
+                  },
+                  child: const Text('Already have an account? Login'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

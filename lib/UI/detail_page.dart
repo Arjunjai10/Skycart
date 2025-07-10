@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/constants.dart';
-import '../services/weather_service.dart';
 
 class DetailPage extends StatelessWidget {
   final List<dynamic> forecastData;
@@ -51,10 +50,10 @@ class DetailPage extends StatelessWidget {
     final temp = selectedDay['main']['temp'];
     final maxTemp = selectedDay['main']['temp_max'];
     final humidity = selectedDay['main']['humidity'];
-    final windSpeed = (selectedDay['wind']['speed'] * 3.6).toStringAsFixed(1); // Convert m/s to km/h
+    final windSpeed = (selectedDay['wind']['speed'] * 3.6).toStringAsFixed(1); // m/s to km/h
     final iconPath = _getLocalWeatherIcon(weatherName);
     final feelsLike = selectedDay['main']['feels_like'];
-    final pressure = selectedDay['main']['pressure']?.toString() ?? 'N/A'; // Handle null pressure
+    final pressure = selectedDay['main']['pressure']?.toString() ?? 'N/A';
 
     return Scaffold(
       appBar: AppBar(
@@ -126,11 +125,13 @@ class DetailPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // Weather metrics
-              Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                alignment: WrapAlignment.center,
+              // Weather metrics (2 per row)
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildInfoCard(
                     'Max Temp',
@@ -163,40 +164,36 @@ class DetailPage extends StatelessWidget {
 
   Widget _buildInfoCard(String title, String value, IconData icon) {
     return Container(
-      width: 120,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
             spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 40,
-            color: Colors.blue,
-          ),
-          const SizedBox(height: 8),
+          Icon(icon, size: 36, color: Colors.blue),
+          const SizedBox(height: 12),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 16,
               color: Colors.grey,
             ),
           ),
