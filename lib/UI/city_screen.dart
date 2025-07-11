@@ -69,7 +69,7 @@ class _CityScreenState extends State<CityScreen> {
       case 'heavy clouds':
         return 'assets/heavycloud.png';
       default:
-        return 'assets/lightcloud.png';
+        return 'assets/showers.png';
     }
   }
 
