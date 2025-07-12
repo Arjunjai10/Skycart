@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/weather_service.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/weather_service.dart';
 
 class CityScreen extends StatefulWidget {
   const CityScreen({super.key});
@@ -105,8 +106,76 @@ class _CityScreenState extends State<CityScreen> {
     searchCityWeather();
   }
 
+  Widget _buildShimmerLoading() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'City Weather',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400]!,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 48,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400]!,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400]!,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeatherMetric(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14)),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return _buildShimmerLoading();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -223,15 +292,6 @@ class _CityScreenState extends State<CityScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildWeatherMetric(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14)),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }

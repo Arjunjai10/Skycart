@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import '../models/constants.dart';
 import '../services/location_service.dart';
 import '../services/weather_service.dart';
 import '../widgets/weather_item.dart';
+import '../widgets/shimmer_widget.dart';
 import 'detail_page.dart';
 
 class Home extends StatefulWidget {
@@ -31,27 +33,6 @@ class _HomeState extends State<Home> {
   String? errorMessage;
   List<dynamic> forecastList = [];
 
-  // Map weather conditions to local asset images
-  // final Map<String, String> weatherIcons = {
-  //   'Clear': 'assets/clear.png',
-  //   'Clouds': 'assets/lightcloud.png',
-  //   'Rain': 'assets/lightrain.png',
-  //   'Heavy Rain': 'assets/heavyrain.png',
-  //   'Thunderstorm': 'assets/thunderstorm.png',
-  //   'Drizzle': 'assets/showers.png',
-  //   'Snow': 'assets/snow.png',
-  //   'Sleet': 'assets/sleet.png',
-  //   'Hail': 'assets/hail.png',
-  //   'Mist': 'assets/lightcloud.png',
-  //   'Fog': 'assets/lightcloud.png',
-  //   'Haze': 'assets/lightcloud.png',
-  //   'Smoke': 'assets/lightcloud.png',
-  //   'Dust': 'assets/lightcloud.png',
-  //   'Sand': 'assets/lightcloud.png',
-  //   'Ash': 'assets/lightcloud.png',
-  //   'Squall': 'assets/thunderstorm.png',
-  //   'Tornado': 'assets/thunderstorm.png',
-  // };
   final Map<String, String> weatherIcons = {
     'Clear': 'assets/clear.png',
     'Clouds': 'assets/showers.png',
@@ -59,7 +40,7 @@ class _HomeState extends State<Home> {
     'Heavy Rain': 'assets/heavyrain.png',
     'Snow': 'assets/snow.png',
     'Thunderstorm': 'assets/thunderstorm.png',
-    'Drizzle': 'assets/lightrain.png', // Using light rain for drizzle
+    'Drizzle': 'assets/lightrain.png',
     'Mist': 'assets/lightcloud.png',
     'Fog': 'assets/lightcloud.png',
     'Haze': 'assets/lightcloud.png',
@@ -70,7 +51,6 @@ class _HomeState extends State<Home> {
     'Squall': 'assets/heavyrain.png',
     'Tornado': 'assets/thunderstorm.png',
   };
-
 
   @override
   void initState() {
@@ -134,17 +114,14 @@ class _HomeState extends State<Home> {
   }
 
   String _getLocalWeatherIcon(String weatherCondition) {
-    String normalizedCondition = weatherCondition[0].toUpperCase() + weatherCondition.substring(1).toLowerCase();
-    print("🔍 Normalized condition: $normalizedCondition");
+    String normalizedCondition = weatherCondition[0].toUpperCase() +
+        weatherCondition.substring(1).toLowerCase();
 
     if (weatherIcons.containsKey(normalizedCondition)) {
-      print("Matched: ${weatherIcons[normalizedCondition]}");
       return weatherIcons[normalizedCondition]!;
     }
 
     final lower = weatherCondition.toLowerCase();
-    print("Fallback triggered for: $lower");
-
     if (lower.contains('thunder')) return 'assets/thunderstorm.png';
     if (lower.contains('heavy') || lower.contains('shower')) return 'assets/heavyrain.png';
     if (lower.contains('rain') || lower.contains('drizzle')) return 'assets/lightrain.png';
@@ -154,37 +131,129 @@ class _HomeState extends State<Home> {
     return 'assets/showers.png';
   }
 
+  Widget _buildShimmerLoading() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Location and date shimmer
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ShimmerWidget.rectangular(height: 30, width: 200),
+              const SizedBox(height: 8),
+              const ShimmerWidget.rectangular(height: 16, width: 150),
+              const SizedBox(height: 30),
+            ],
+          ),
 
+          // Main weather card shimmer
+          Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey[400]!,
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          // Weather metrics shimmer
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildShimmerMetric(),
+                _buildShimmerMetric(),
+                _buildShimmerMetric(),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          // Forecast header shimmer
+          const ShimmerWidget.rectangular(height: 24, width: 100),
+          const SizedBox(height: 20),
+
+          // Forecast list shimmer
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 5,
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 100,
+                  margin: EdgeInsets.only(right: 20, left: index == 0 ? 0 : 0),
+                  child: Column(
+                    children: [
+                      const ShimmerWidget.rectangular(height: 16, width: 60),
+                      const SizedBox(height: 8),
+                      const ShimmerWidget.rectangular(height: 40, width: 40),
+                      const SizedBox(height: 8),
+                      const ShimmerWidget.rectangular(height: 18, width: 30),
+                      const SizedBox(height: 4),
+                      const ShimmerWidget.rectangular(height: 14, width: 30),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerMetric() {
+    return Column(
+      children: [
+        const ShimmerWidget.circular(width: 40, height: 40),
+        const SizedBox(height: 8),
+        const ShimmerWidget.rectangular(height: 18, width: 60),
+        const SizedBox(height: 4),
+        const ShimmerWidget.rectangular(height: 14, width: 40),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            errorMessage!,
+            style: const TextStyle(fontSize: 18),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _fetchWeatherData,
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
 
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              errorMessage!,
-              style: const TextStyle(fontSize: 18),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchWeatherData,
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      );
-    }
+    if (isLoading) return _buildShimmerLoading();
+    if (errorMessage != null) return _buildErrorWidget();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -309,7 +378,7 @@ class _HomeState extends State<Home> {
                     text: 'Wind',
                     value: windSpeed.toInt(),
                     unit: 'km/h',
-                    imageUrl: 'assets/windspeed.png', // Updated asset name
+                    imageUrl: 'assets/windspeed.png',
                   ),
                   WeatherItem(
                     text: 'Humidity',
@@ -344,9 +413,8 @@ class _HomeState extends State<Home> {
               ],
             ),
             const SizedBox(height: 20),
-            // Update your forecast list view with this improved version
             SizedBox(
-              height: 180, // Increased height for better spacing
+              height: 180,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: forecastList.length,
@@ -376,10 +444,10 @@ class _HomeState extends State<Home> {
                       );
                     },
                     child: Container(
-                      width: 100, // Wider container for better content display
+                      width: 100,
                       margin: EdgeInsets.only(
                         right: 20,
-                        left: index == 0 ? 0 : 0, // No extra left margin
+                        left: index == 0 ? 0 : 0,
                       ),
                       decoration: BoxDecoration(
                         color: index == 0
@@ -397,7 +465,6 @@ class _HomeState extends State<Home> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            // Day name
                             Text(
                               dayName,
                               style: TextStyle(
@@ -408,8 +475,6 @@ class _HomeState extends State<Home> {
                                     : Colors.black,
                               ),
                             ),
-
-                            // Weather icon with description
                             Column(
                               children: [
                                 Image.asset(
@@ -438,8 +503,6 @@ class _HomeState extends State<Home> {
                                 ),
                               ],
                             ),
-
-                            // Temperature range
                             Column(
                               children: [
                                 Text(

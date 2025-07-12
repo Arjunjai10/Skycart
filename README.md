@@ -2,6 +2,8 @@
 
 A new Flutter project.
 
+SkyCast for Weather Identification According to the live location of the user.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

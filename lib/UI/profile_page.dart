@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
@@ -71,6 +72,75 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Widget _buildShimmerLoading() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("My Profile",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+      ),
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(
+          children: [
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: const CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 28,
+                width: 150,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 18,
+                width: 200,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 30),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 48,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+            const Spacer(),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                height: 24,
+                width: 100,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
@@ -132,12 +202,10 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Padding(
-        // symmetric padding keeps everything nicely spaced
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // little grab handle
             Container(
               width: 40,
               height: 4,
@@ -152,23 +220,21 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
-
-            // ---- Avatar grid ---------------------------------------------------
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: defaultImages.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,        // 3 per row looks balanced on phones
+                crossAxisCount: 3,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1,      // makes every tile perfectly square
+                childAspectRatio: 1,
               ),
               itemBuilder: (context, index) {
                 final img = defaultImages[index];
                 return GestureDetector(
                   onTap: () async {
-                    Navigator.pop(context);       // close sheet
+                    Navigator.pop(context);
                     setState(() => isLoading = true);
                     final user = FirebaseAuth.instance.currentUser;
                     if (user != null) {
@@ -187,8 +253,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 );
               },
             ),
-            // -------------------------------------------------------------------
-
             const SizedBox(height: 24),
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -199,7 +263,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
 
   void _showEditProfileSheet() {
     _nameController.text = userName;
@@ -269,9 +332,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return _buildShimmerLoading();
     }
 
     if (_errorMessage.isNotEmpty) {
@@ -309,8 +370,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 20),
             Text(userName,
-                style:
-                const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(userEmail,
                 style: const TextStyle(fontSize: 16, color: Colors.grey)),
@@ -325,8 +386,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
               ),
             ),
             const Spacer(),

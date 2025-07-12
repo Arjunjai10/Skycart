@@ -76,7 +76,7 @@ class UserService {
     });
   }
 
-  // ✅ Only Celsius preference is now managed
+
   Future<Map<String, dynamic>> getUserPreferences(String uid) async {
     DocumentSnapshot doc = await _firestore.collection('user_preferences').doc(uid).get();
     if (doc.exists) {
@@ -88,7 +88,7 @@ class UserService {
     return {'isCelsius': true};
   }
 
-  // ✅ Update only temperature unit preference
+
   Future<void> updatePreferences({required String uid, required bool isCelsius}) async {
     await _firestore.collection('user_preferences').doc(uid).set({
       'isCelsius': isCelsius,
