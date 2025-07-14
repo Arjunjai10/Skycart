@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../models/constants.dart';
 import '../services/location_service.dart';
+import '../services/notification_service.dart';
 import '../services/weather_service.dart';
 import '../widgets/weather_item.dart';
 import '../widgets/shimmer_widget.dart';
@@ -82,6 +83,10 @@ class _HomeState extends State<Home> {
         forecastList = _processForecastData(forecastData);
         isLoading = false;
       });
+
+      if (['Thunderstorm', 'Heavy Rain', 'Snow', 'Extreme Heat'].contains(weatherStateName)) {
+        await NotificationService().showWeatherAlert(weatherStateName);
+      }
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -114,9 +119,8 @@ class _HomeState extends State<Home> {
   }
 
   String _getLocalWeatherIcon(String weatherCondition) {
-    String normalizedCondition = weatherCondition[0].toUpperCase() +
-        weatherCondition.substring(1).toLowerCase();
-
+    String normalizedCondition =
+        weatherCondition[0].toUpperCase() + weatherCondition.substring(1).toLowerCase();
     if (weatherIcons.containsKey(normalizedCondition)) {
       return weatherIcons[normalizedCondition]!;
     }
@@ -131,25 +135,28 @@ class _HomeState extends State<Home> {
     return 'assets/showers.png';
   }
 
+  Widget _buildShimmerMetric() {
+    return Column(
+      children: const [
+        ShimmerWidget.circular(width: 40, height: 40),
+        SizedBox(height: 8),
+        ShimmerWidget.rectangular(height: 18, width: 60),
+        SizedBox(height: 4),
+        ShimmerWidget.rectangular(height: 14, width: 40),
+      ],
+    );
+  }
+
   Widget _buildShimmerLoading() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Location and date shimmer
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const ShimmerWidget.rectangular(height: 30, width: 200),
-              const SizedBox(height: 8),
-              const ShimmerWidget.rectangular(height: 16, width: 150),
-              const SizedBox(height: 30),
-            ],
-          ),
-
-          // Main weather card shimmer
+          const ShimmerWidget.rectangular(height: 30, width: 200),
+          const SizedBox(height: 8),
+          const ShimmerWidget.rectangular(height: 16, width: 150),
+          const SizedBox(height: 30),
           Shimmer.fromColors(
             baseColor: Colors.grey[300]!,
             highlightColor: Colors.grey[100]!,
@@ -162,67 +169,41 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-
           const SizedBox(height: 30),
-
-          // Weather metrics shimmer
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildShimmerMetric(),
-                _buildShimmerMetric(),
-                _buildShimmerMetric(),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildShimmerMetric(),
+              _buildShimmerMetric(),
+              _buildShimmerMetric(),
+            ],
           ),
-
           const SizedBox(height: 30),
-
-          // Forecast header shimmer
           const ShimmerWidget.rectangular(height: 24, width: 100),
           const SizedBox(height: 20),
-
-          // Forecast list shimmer
           SizedBox(
             height: 180,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: 5,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 100,
-                  margin: EdgeInsets.only(right: 20, left: index == 0 ? 0 : 0),
-                  child: Column(
-                    children: [
-                      const ShimmerWidget.rectangular(height: 16, width: 60),
-                      const SizedBox(height: 8),
-                      const ShimmerWidget.rectangular(height: 40, width: 40),
-                      const SizedBox(height: 8),
-                      const ShimmerWidget.rectangular(height: 18, width: 30),
-                      const SizedBox(height: 4),
-                      const ShimmerWidget.rectangular(height: 14, width: 30),
-                    ],
-                  ),
-                );
-              },
+              itemBuilder: (_, __) => Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: Column(
+                  children: const [
+                    ShimmerWidget.rectangular(height: 16, width: 60),
+                    SizedBox(height: 8),
+                    ShimmerWidget.rectangular(height: 40, width: 40),
+                    SizedBox(height: 8),
+                    ShimmerWidget.rectangular(height: 18, width: 30),
+                    SizedBox(height: 4),
+                    ShimmerWidget.rectangular(height: 14, width: 30),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildShimmerMetric() {
-    return Column(
-      children: [
-        const ShimmerWidget.circular(width: 40, height: 40),
-        const SizedBox(height: 8),
-        const ShimmerWidget.rectangular(height: 18, width: 60),
-        const SizedBox(height: 4),
-        const ShimmerWidget.rectangular(height: 14, width: 40),
-      ],
     );
   }
 
@@ -233,16 +214,9 @@ class _HomeState extends State<Home> {
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.red),
           const SizedBox(height: 16),
-          Text(
-            errorMessage!,
-            style: const TextStyle(fontSize: 18),
-            textAlign: TextAlign.center,
-          ),
+          Text(errorMessage!, style: const TextStyle(fontSize: 18), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _fetchWeatherData,
-            child: const Text('Try Again'),
-          ),
+          ElevatedButton(onPressed: _fetchWeatherData, child: const Text('Try Again')),
         ],
       ),
     );
@@ -274,13 +248,8 @@ class _HomeState extends State<Home> {
                 children: [
                   Image.asset('assets/pin.png', width: 20),
                   const SizedBox(width: 4),
-                  Text(
-                    '$location, $country',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('$location, $country',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               )
             ],
@@ -293,14 +262,10 @@ class _HomeState extends State<Home> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              location,
-              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              currentDate,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
+            Text(location,
+                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+            Text(currentDate,
+                style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 30),
             Container(
               width: size.width,
@@ -323,19 +288,14 @@ class _HomeState extends State<Home> {
                   Positioned(
                     top: -40,
                     left: 20,
-                    child: Image.asset(
-                      _getLocalWeatherIcon(weatherStateName),
-                      width: 150,
-                      height: 150,
-                    ),
+                    child: Image.asset(_getLocalWeatherIcon(weatherStateName),
+                        width: 150, height: 150),
                   ),
                   Positioned(
                     bottom: 30,
                     left: 20,
-                    child: Text(
-                      weatherStateName,
-                      style: const TextStyle(color: Colors.white, fontSize: 20),
-                    ),
+                    child: Text(weatherStateName,
+                        style: const TextStyle(color: Colors.white, fontSize: 20)),
                   ),
                   Positioned(
                     top: 20,
@@ -345,23 +305,17 @@ class _HomeState extends State<Home> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            temperature.toStringAsFixed(0),
-                            style: const TextStyle(
-                              fontSize: 80,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: Text(temperature.toStringAsFixed(0),
+                              style: const TextStyle(
+                                  fontSize: 80,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
                         ),
-                        const Text(
-                          '°',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        const Text('°',
+                            style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
                       ],
                     ),
                   ),
@@ -375,23 +329,20 @@ class _HomeState extends State<Home> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   WeatherItem(
-                    text: 'Wind',
-                    value: windSpeed.toInt(),
-                    unit: 'km/h',
-                    imageUrl: 'assets/windspeed.png',
-                  ),
+                      text: 'Wind',
+                      value: windSpeed.toInt(),
+                      unit: 'km/h',
+                      imageUrl: 'assets/windspeed.png'),
                   WeatherItem(
-                    text: 'Humidity',
-                    value: humidity,
-                    unit: '%',
-                    imageUrl: 'assets/humidity.png',
-                  ),
+                      text: 'Humidity',
+                      value: humidity,
+                      unit: '%',
+                      imageUrl: 'assets/humidity.png'),
                   WeatherItem(
-                    text: 'Max Temp',
-                    value: maxTemp.toInt(),
-                    unit: '°C',
-                    imageUrl: 'assets/max-temp.png',
-                  ),
+                      text: 'Max Temp',
+                      value: maxTemp.toInt(),
+                      unit: '°C',
+                      imageUrl: 'assets/max-temp.png'),
                 ],
               ),
             ),
@@ -399,17 +350,10 @@ class _HomeState extends State<Home> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Today',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Next ${forecastList.length} Days',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: myConstants.primaryColor,
-                  ),
-                ),
+                const Text('Today',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('Next ${forecastList.length} Days',
+                    style: TextStyle(fontSize: 18, color: myConstants.primaryColor)),
               ],
             ),
             const SizedBox(height: 20),
@@ -430,25 +374,20 @@ class _HomeState extends State<Home> {
                   final description = weather['description'];
 
                   return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetailPage(
-                            forecastData: forecastList,
-                            selectedIndex: index,
-                            location: location,
-                            country: country,
-                          ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailPage(
+                          forecastData: forecastList,
+                          selectedIndex: index,
+                          location: location,
+                          country: country,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                     child: Container(
                       width: 100,
-                      margin: EdgeInsets.only(
-                        right: 20,
-                        left: index == 0 ? 0 : 0,
-                      ),
+                      margin: EdgeInsets.only(right: 20),
                       decoration: BoxDecoration(
                         color: index == 0
                             ? myConstants.primaryColor.withOpacity(0.2)
@@ -465,65 +404,42 @@ class _HomeState extends State<Home> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            Text(
-                              dayName,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: index == 0
-                                    ? myConstants.primaryColor
-                                    : Colors.black,
-                              ),
-                            ),
+                            Text(dayName,
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: index == 0
+                                        ? myConstants.primaryColor
+                                        : Colors.black)),
                             Column(
                               children: [
-                                Image.asset(
-                                  localIcon,
-                                  width: 40,
-                                  height: 40,
-                                  errorBuilder: (context, error, stackTrace) => Icon(
-                                    Icons.cloud,
-                                    size: 40,
-                                    color: index == 0
-                                        ? myConstants.primaryColor
-                                        : Colors.grey,
-                                  ),
-                                ),
+                                Image.asset(localIcon, width: 40, height: 40),
                                 const SizedBox(height: 4),
-                                Text(
-                                  description,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: index == 0
-                                        ? myConstants.primaryColor
-                                        : Colors.grey,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                ),
+                                Text(description,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: index == 0
+                                            ? myConstants.primaryColor
+                                            : Colors.grey),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2),
                               ],
                             ),
                             Column(
                               children: [
-                                Text(
-                                  "${temp.toStringAsFixed(0)}°",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: index == 0
-                                        ? myConstants.primaryColor
-                                        : Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  "${minTemp.toStringAsFixed(0)}°",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: index == 0
-                                        ? myConstants.primaryColor.withOpacity(0.7)
-                                        : Colors.black,
-                                  ),
-                                ),
+                                Text("${temp.toStringAsFixed(0)}°",
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: index == 0
+                                            ? myConstants.primaryColor
+                                            : Colors.black)),
+                                Text("${minTemp.toStringAsFixed(0)}°",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: index == 0
+                                            ? myConstants.primaryColor.withOpacity(0.7)
+                                            : Colors.black)),
                               ],
                             ),
                           ],
@@ -534,6 +450,31 @@ class _HomeState extends State<Home> {
                 },
               ),
             ),
+            const SizedBox(height: 30),
+
+            // ✅ Test Notification Button
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  NotificationService().showNotification(
+                    title: 'Test Notification',
+                    body: 'This is a test notification!',
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: myConstants.primaryColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Send Test Notification",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

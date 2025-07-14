@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'home.dart';
 import 'city_screen.dart';
 import 'profile_page.dart';
@@ -50,6 +51,8 @@ class _MainNavigationState extends State<MainNavigation>
       ),
     );
     _controllers[_selectedIndex].value = 1.0;
+
+    NotificationService().scheduleDailyWeatherNotification();
   }
 
   @override

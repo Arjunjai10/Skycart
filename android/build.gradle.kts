@@ -1,25 +1,31 @@
-allprojects {
+import org.gradle.api.tasks.Delete
+import org.gradle.api.Project
+import org.gradle.api.artifacts.dsl.RepositoryHandler
+import org.gradle.kotlin.dsl.*
+
+buildscript {
+    val kotlinVersion by extra("1.7.10")
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.3.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
+
     repositories {
         google()
         mavenCentral()
     }
-//    dependencies {
-//        classpath 'com.google.gms:google-services:4.3.15'  // Latest version
-//    }
 }
 
-val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+val newBuildDir = layout.buildDirectory.dir("../../build").get()
+layout.buildDirectory.set(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    val newSubprojectBuildDir = newBuildDir.dir(name)
+    layout.buildDirectory.set(newSubprojectBuildDir)
+    evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
+    delete(layout.buildDirectory)
 }
-

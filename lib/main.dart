@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:sky_cast/services/notification_service.dart';
 import 'UI/city_screen.dart';
 import 'UI/home.dart';
 import 'UI/profile_page.dart';
 import 'UI/settings_page.dart';
 import 'firebase_options.dart';
 import 'UI/splash_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+// Ask for permission (only needed on Android 13+)
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
   runApp(const MyApp());
 }
 
