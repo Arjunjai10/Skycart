@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lottie/lottie.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/weather_service.dart';
 
 class CityScreen extends StatefulWidget {
@@ -13,21 +15,37 @@ class CityScreen extends StatefulWidget {
 class _CityScreenState extends State<CityScreen> {
   final TextEditingController _controller = TextEditingController();
   final WeatherService _weatherService = WeatherService();
+  final Connectivity _connectivity = Connectivity();
   List<String> _recentSearches = [];
   final int _maxRecentSearches = 5;
 
   Map<String, dynamic>? weatherData;
   bool isLoading = false;
   String? errorMessage;
+  bool hasInternet = true;
 
   @override
   void initState() {
     super.initState();
+    _checkInternetConnection();
     _loadRecentSearches().then((_) {
-      if (_recentSearches.isNotEmpty) {
+      if (_recentSearches.isNotEmpty && hasInternet) {
         _controller.text = _recentSearches.first;
         searchCityWeather(initialLoad: true);
       }
+    });
+  }
+
+  Future<void> _checkInternetConnection() async {
+    final connectivityResult = await _connectivity.checkConnectivity();
+    setState(() {
+      hasInternet = connectivityResult != ConnectivityResult.none;
+    });
+
+    _connectivity.onConnectivityChanged.listen((result) {
+      setState(() {
+        hasInternet = result != ConnectivityResult.none;
+      });
     });
   }
 
@@ -75,6 +93,14 @@ class _CityScreenState extends State<CityScreen> {
   }
 
   void searchCityWeather({bool initialLoad = false}) async {
+    if (!hasInternet) {
+      setState(() {
+        errorMessage = "No internet connection";
+        isLoading = false;
+      });
+      return;
+    }
+
     final city = _controller.text.trim();
     if (city.isEmpty) return;
 
@@ -96,14 +122,61 @@ class _CityScreenState extends State<CityScreen> {
       setState(() {
         weatherData = null;
         isLoading = false;
-        errorMessage = "City not found or network error";
+        errorMessage = _getErrorMessage(e);
       });
+    }
+  }
+
+  String _getErrorMessage(dynamic e) {
+    if (!hasInternet) {
+      return "No internet connection";
+    } else if (e.toString().contains('404')) {
+      return "City not found";
+    } else {
+      return "Failed to load weather data";
     }
   }
 
   void _searchRecentCity(String city) {
     _controller.text = city;
     searchCityWeather();
+  }
+
+  Widget _buildNoInternetWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(
+            'assets/network_error.json',
+            width: 200,
+            height: 200,
+            repeat: true,
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'No Internet Connection',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Please check your connection and try again',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              _checkInternetConnection();
+              if (hasInternet && _controller.text.isNotEmpty) {
+                searchCityWeather();
+              }
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildShimmerLoading() {
@@ -172,6 +245,19 @@ class _CityScreenState extends State<CityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!hasInternet && !isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'City Weather',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.black,
+        ),
+        body: _buildNoInternetWidget(),
+      );
+    }
+
     if (isLoading) {
       return _buildShimmerLoading();
     }

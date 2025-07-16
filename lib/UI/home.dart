@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:lottie/lottie.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/constants.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
@@ -20,6 +22,7 @@ class _HomeState extends State<Home> {
   final Constants myConstants = Constants();
   final WeatherService _weatherService = WeatherService();
   final LocationService _locationService = LocationService();
+  final Connectivity _connectivity = Connectivity();
 
   double temperature = 0;
   double maxTemp = 0;
@@ -32,6 +35,7 @@ class _HomeState extends State<Home> {
   String country = '';
   bool isLoading = true;
   String? errorMessage;
+  bool hasInternet = true;
   List<dynamic> forecastList = [];
 
   final Map<String, String> weatherIcons = {
@@ -56,7 +60,39 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _fetchWeatherData();
+    _checkInternetAndFetchData();
+    _setupConnectivityListener();
+  }
+
+  Future<void> _checkInternetAndFetchData() async {
+    final connectivityResult = await _connectivity.checkConnectivity();
+    setState(() {
+      hasInternet = connectivityResult != ConnectivityResult.none;
+    });
+
+    if (hasInternet) {
+      _fetchWeatherData();
+    } else {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'No internet connection';
+      });
+    }
+  }
+
+  void _setupConnectivityListener() {
+    _connectivity.onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none && !hasInternet) {
+        setState(() => hasInternet = true);
+        _fetchWeatherData();
+      } else if (result == ConnectivityResult.none) {
+        setState(() {
+          hasInternet = false;
+          errorMessage = 'No internet connection';
+          isLoading = false;
+        });
+      }
+    });
   }
 
   Future<void> _fetchWeatherData() async {
@@ -216,7 +252,42 @@ class _HomeState extends State<Home> {
           const SizedBox(height: 16),
           Text(errorMessage!, style: const TextStyle(fontSize: 18), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchWeatherData, child: const Text('Try Again')),
+          ElevatedButton(
+            onPressed: _fetchWeatherData,
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoInternetWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(
+            'assets/network_error.json',
+            width: 200,
+            height: 200,
+            repeat: true,
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'No Internet Connection',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Please check your connection and try again',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _checkInternetAndFetchData,
+            child: const Text('Retry'),
+          ),
         ],
       ),
     );
@@ -226,6 +297,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
 
+    if (!hasInternet) return _buildNoInternetWidget();
     if (isLoading) return _buildShimmerLoading();
     if (errorMessage != null) return _buildErrorWidget();
 
@@ -451,8 +523,6 @@ class _HomeState extends State<Home> {
               ),
             ),
             const SizedBox(height: 30),
-
-            // ✅ Test Notification Button
             Center(
               child: ElevatedButton(
                 onPressed: () {

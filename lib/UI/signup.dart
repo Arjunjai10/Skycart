@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/notification_service.dart';
 import 'login.dart';
 import 'CitySelectionScreen.dart';
 
@@ -54,13 +55,19 @@ class _SignupState extends State<Signup> {
           _emailController.text.trim(),
         );
 
-        // Save preference (only isCelsius, no dark mode)
+        // Save preferences (like temperature unit)
         await _userService.updatePreferences(
           uid: user.uid,
           isCelsius: true,
         );
 
-        // Navigate
+        // ✅ Show local notification
+        await NotificationService().showNotification(
+          title: 'Welcome, ${_nameController.text.trim()}!',
+          body: 'Signup successful. Let\'s set your city!',
+        );
+
+        // Navigate to city selection
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CitySelectionScreen()),
@@ -105,7 +112,6 @@ class _SignupState extends State<Signup> {
                 ),
                 const SizedBox(height: 16),
 
-                // Name
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -120,7 +126,6 @@ class _SignupState extends State<Signup> {
                 ),
                 const SizedBox(height: 16),
 
-                // Email
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -135,7 +140,6 @@ class _SignupState extends State<Signup> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -151,7 +155,6 @@ class _SignupState extends State<Signup> {
                 ),
                 const SizedBox(height: 16),
 
-                // Confirm Password
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: true,
@@ -167,7 +170,6 @@ class _SignupState extends State<Signup> {
                 ),
                 const SizedBox(height: 20),
 
-                // Error
                 if (_errorMessage != null)
                   Text(
                     _errorMessage!,
@@ -176,13 +178,12 @@ class _SignupState extends State<Signup> {
 
                 const SizedBox(height: 16),
 
-                // Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSignup,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: _isLoading

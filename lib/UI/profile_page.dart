@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/user_service.dart';
 import 'login.dart';
 
@@ -17,12 +19,14 @@ class _ProfilePageState extends State<ProfilePage> {
   final UserService _userService = UserService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final Connectivity _connectivity = Connectivity();
 
   String userName = "Loading...";
   String userEmail = "Loading...";
   String? _profileImageUrl;
   File? _profileImage;
   bool isLoading = true;
+  bool isOffline = false;
   String _errorMessage = '';
 
   final List<String> defaultImages = [
@@ -35,6 +39,8 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _initConnectivity();
+    _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
     _loadUserData();
 
     // Pre-cache images
@@ -45,7 +51,35 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<void> _initConnectivity() async {
+    ConnectivityResult result;
+    try {
+      result = await _connectivity.checkConnectivity();
+      _updateConnectionStatus(result);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Could not check connectivity status');
+      }
+    }
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+    if (mounted) {
+      setState(() {
+        isOffline = result == ConnectivityResult.none;
+        if (isOffline) {
+          _errorMessage = 'No internet connection';
+        } else if (_errorMessage == 'No internet connection') {
+          _errorMessage = '';
+          _loadUserData(); // Retry loading data when connection is restored
+        }
+      });
+    }
+  }
+
   Future<void> _loadUserData() async {
+    if (isOffline) return;
+
     setState(() => isLoading = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -56,6 +90,7 @@ class _ProfilePageState extends State<ProfilePage> {
             userName = userData['name'] ?? user.displayName ?? 'User';
             userEmail = userData['email'] ?? user.email ?? 'No email';
             _profileImageUrl = userData['profileImage'];
+            _errorMessage = '';
           });
         } else {
           await _userService.saveUserData(
@@ -141,29 +176,41 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Future<void> _pickImage() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.image),
-            title: const Text('Choose from gallery'),
-            onTap: () {
-              Navigator.pop(context);
-              _pickImageFromGallery();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.face),
-            title: const Text('Choose default avatar'),
-            onTap: () {
-              Navigator.pop(context);
-              _showDefaultImagePicker();
-            },
-          ),
-        ],
+  Widget _buildNoInternetView() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("My Profile",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.asset(
+              'assets/network_error.json',
+              width: 200,
+              height: 200,
+              repeat: true,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No Internet Connection',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Please check your connection and try again',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _initConnectivity,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -201,65 +248,105 @@ class _ProfilePageState extends State<ProfilePage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Choose a profile picture',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 24),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: defaultImages.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1,
+              const SizedBox(height: 16),
+              const Text(
+                'Choose a profile picture',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-              itemBuilder: (context, index) {
-                final img = defaultImages[index];
-                return GestureDetector(
-                  onTap: () async {
-                    Navigator.pop(context);
-                    setState(() => isLoading = true);
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user != null) {
-                      await _userService.updateProfileImageUrl(user.uid, img);
-                      setState(() {
-                        _profileImageUrl = img;
-                        _profileImage = null;
-                        isLoading = false;
-                      });
-                    }
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(img, fit: BoxFit.cover),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(fontSize: 16)),
-            ),
-          ],
-        ),
+              const SizedBox(height: 24),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: defaultImages.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final img = defaultImages[index];
+                  return GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      setState(() => isLoading = true);
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        await _userService.updateProfileImageUrl(user.uid, img);
+                        setState(() {
+                          _profileImageUrl = img;
+                          _profileImage = null;
+                          isLoading = false;
+                        });
+                      }
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(img, fit: BoxFit.cover),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+  Future<void> _pickImage() async {
+    if (isOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection available')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.image),
+            title: const Text('Choose from gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImageFromGallery();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.face),
+            title: const Text('Choose default avatar'),
+            onTap: () {
+              Navigator.pop(context);
+              _showDefaultImagePicker();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -331,13 +418,45 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isOffline) {
+      return _buildNoInternetView();
+    }
+
     if (isLoading) {
       return _buildShimmerLoading();
     }
 
     if (_errorMessage.isNotEmpty) {
       return Scaffold(
-        body: Center(child: Text(_errorMessage)),
+        appBar: AppBar(
+          title: const Text("My Profile",
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.black,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset(
+                'assets/network_error.json',
+                width: 150,
+                height: 150,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _loadUserData,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -386,7 +505,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 30, vertical: 12),
               ),
             ),
             const Spacer(),

@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:sky_cast/services/notification_service.dart';
-import 'UI/city_screen.dart';
+import 'firebase_options.dart';
+
+import 'UI/splash_screen.dart';
 import 'UI/home.dart';
+import 'UI/city_screen.dart';
 import 'UI/profile_page.dart';
 import 'UI/settings_page.dart';
-import 'firebase_options.dart';
-import 'UI/splash_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-
+  // Initialize Notification Service
   final notificationService = NotificationService();
   await notificationService.initialize();
 
-// Ask for permission (only needed on Android 13+)
+  // Request Notification permission (Android 13+)
   if (await Permission.notification.isDenied) {
     await Permission.notification.request();
   }
@@ -40,9 +44,17 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const SplashScreen(),
+      // Optional: Define named routes
+      routes: {
+        '/home': (context) => const Home(),
+        '/city': (context) => const CityScreen(),
+        '/profile': (context) => const ProfilePage(),
+        '/settings': (context) => const SettingsPage(),
+      },
     );
   }
 }
+
 
 // class MainNavigation extends StatefulWidget {
 //   const MainNavigation({super.key});
