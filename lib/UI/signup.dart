@@ -7,6 +7,7 @@ import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import 'login.dart';
 import 'CitySelectionScreen.dart';
+import 'main_navigation.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -64,13 +65,13 @@ class _SignupState extends State<Signup> {
         // ✅ Show local notification
         await NotificationService().showNotification(
           title: 'Welcome, ${_nameController.text.trim()}!',
-          body: 'Signup successful. Let\'s set your city!',
+          body: 'Signup successful. Let\'s see your city!',
         );
 
         // Navigate to city selection
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const CitySelectionScreen()),
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
         );
       }
     } on FirebaseAuthException catch (e) {

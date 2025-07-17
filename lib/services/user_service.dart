@@ -4,94 +4,145 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class UserService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
+  // Constructor allows for dependency injection (useful for testing)
+  UserService({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance;
+
+  // Constants for collection and field names
+  static const String _usersCollection = 'users';
+  static const String _preferencesCollection = 'user_preferences';
+  static const String _profileImagesPath = 'profile_images';
+
+  /// Saves user data to Firestore
   Future<void> saveUserData(String uid, String name, String email) async {
     try {
-      await _firestore.collection('users').doc(uid).set({
+      await _firestore.collection(_usersCollection).doc(uid).set({
         'name': name,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'selectedCities': ['London'],
+        'selectedCities': ['London'], // Default city
         'profileImage': null,
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error saving user data: $e');
-      throw Exception('Failed to save user data');
+      throw _handleFirestoreError('saving user data', e);
     }
   }
 
-  Future<void> signOut() async {
-    await FirebaseAuth.instance.signOut();
-  }
-
-  Future<Map<String, dynamic>?> getUserData(String uid) async {
+  /// Gets user data from Firestore
+  Future<Map<String, dynamic>> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        return doc.data() as Map<String, dynamic>?;
-      }
-      return {};
+      final doc = await _firestore.collection(_usersCollection).doc(uid).get();
+      return doc.data() ?? {};
     } catch (e) {
-      print('Error getting user data: $e');
-      throw Exception('Failed to load user data');
+      throw _handleFirestoreError('loading user data', e);
     }
   }
 
+  /// Updates user profile information
   Future<void> updateProfile(String uid, String name, String email) async {
-    await _firestore.collection('users').doc(uid).update({
-      'name': name,
-      'email': email,
-    });
+    try {
+      await _firestore.collection(_usersCollection).doc(uid).update({
+        'name': name,
+        'email': email,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw _handleFirestoreError('updating profile', e);
+    }
   }
 
+  /// Updates selected cities for a user
   Future<void> updateSelectedCities(String uid, List<String> cities) async {
-    await _firestore.collection('users').doc(uid).update({
-      'selectedCities': cities,
-    });
+    try {
+      await _firestore.collection(_usersCollection).doc(uid).update({
+        'selectedCities': cities,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw _handleFirestoreError('updating selected cities', e);
+    }
   }
 
+  /// Uploads profile image to Firebase Storage
   Future<String> uploadProfileImage(String uid, String filePath) async {
     try {
-      final ref = _storage.ref().child('profile_images/$uid.jpg');
+      final ref = _storage.ref().child('$_profileImagesPath/$uid.jpg');
       final uploadTask = ref.putFile(File(filePath));
       final snapshot = await uploadTask.whenComplete(() {});
-      if (snapshot.state == TaskState.success) {
-        return await ref.getDownloadURL();
-      } else {
-        throw Exception('Upload failed');
+
+      if (snapshot.state != TaskState.success) {
+        throw Exception('Upload failed with state: ${snapshot.state}');
       }
+
+      return await ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading image: $e');
-      throw Exception('Failed to upload image');
+      throw _handleStorageError('uploading profile image', e);
     }
   }
 
+  /// Updates profile image URL in Firestore
   Future<void> updateProfileImageUrl(String uid, String imageUrl) async {
-    await _firestore.collection('users').doc(uid).update({
-      'profileImage': imageUrl,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-
-  Future<Map<String, dynamic>> getUserPreferences(String uid) async {
-    DocumentSnapshot doc = await _firestore.collection('user_preferences').doc(uid).get();
-    if (doc.exists) {
-      final data = doc.data() as Map<String, dynamic>;
-      return {
-        'isCelsius': data['isCelsius'] ?? true,
-      };
+    try {
+      await _firestore.collection(_usersCollection).doc(uid).update({
+        'profileImage': imageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw _handleFirestoreError('updating profile image URL', e);
     }
-    return {'isCelsius': true};
   }
 
+  /// Gets user preferences
+  Future<Map<String, dynamic>> getUserPreferences(String uid) async {
+    try {
+      final doc = await _firestore.collection(_preferencesCollection).doc(uid).get();
+      return doc.exists
+          ? {'isCelsius': doc.data()?['isCelsius'] ?? true}
+          : {'isCelsius': true};
+    } catch (e) {
+      throw _handleFirestoreError('loading preferences', e);
+    }
+  }
 
-  Future<void> updatePreferences({required String uid, required bool isCelsius}) async {
-    await _firestore.collection('user_preferences').doc(uid).set({
-      'isCelsius': isCelsius,
-    }, SetOptions(merge: true));
+  /// Updates user preferences
+  Future<void> updatePreferences({
+    required String uid,
+    required bool isCelsius,
+  }) async {
+    try {
+      await _firestore.collection(_preferencesCollection).doc(uid).set({
+        'isCelsius': isCelsius,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      throw _handleFirestoreError('updating preferences', e);
+    }
+  }
+
+  /// Signs out the current user
+  Future<void> signOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      throw Exception('Failed to sign out: ${e.toString()}');
+    }
+  }
+
+  // Error handling helpers
+  Exception _handleFirestoreError(String operation, dynamic error) {
+    print('Error $operation: $error');
+    return Exception('Failed to $operation. Please try again.');
+  }
+
+  Exception _handleStorageError(String operation, dynamic error) {
+    print('Error $operation: $error');
+    return Exception('Failed to $operation. Please try again.');
   }
 }

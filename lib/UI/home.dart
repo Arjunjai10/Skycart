@@ -522,28 +522,28 @@ class _HomeState extends State<Home> {
                 },
               ),
             ),
-            const SizedBox(height: 30),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  NotificationService().showNotification(
-                    title: 'Test Notification',
-                    body: 'This is a test notification!',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: myConstants.primaryColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  "Send Test Notification",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
+            // const SizedBox(height: 30),
+            // Center(
+            //   child: ElevatedButton(
+            //     onPressed: () {
+            //       NotificationService().showNotification(
+            //         title: 'Test Notification',
+            //         body: 'This is a test notification!',
+            //       );
+            //     },
+            //     style: ElevatedButton.styleFrom(
+            //       backgroundColor: myConstants.primaryColor,
+            //       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //     ),
+            //     child: const Text(
+            //       "Send Test Notification",
+            //       style: TextStyle(fontSize: 16, color: Colors.white),
+            //     ),
+            //   ),
+            // ),
             const SizedBox(height: 40),
           ],
         ),
